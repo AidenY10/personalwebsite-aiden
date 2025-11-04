@@ -328,7 +328,8 @@
     <main>
         <section class="intro">
             <h1>Ghostly Pumpkin Cannon</h1>
-            <p>Experiment with launch angle, speed, and gravity to craft the perfect pumpkin toss. The pumpkin soars from a cozy ghost cannon while the math unfolds in real time.</p>
+            <p>Experiment with launch angle and speed to craft the perfect pumpkin toss. The pumpkin soars from a cozy ghost cannon while the math unfolds in real time.</p>
+            <p>Projectile motion follows the kinematic equations of motion. The horizontal position is given by <em>x = v₀cos(θ)·t</em>, where <em>v₀</em> is the initial speed, <em>θ</em> is the launch angle, and <em>t</em> is time. The vertical position follows <em>y = v₀sin(θ)·t - ½gt²</em>, where <em>g = 9.8 m/s²</em> is the acceleration due to gravity. The maximum height occurs when the vertical velocity is zero: <em>h_max = (v₀sin(θ))²/(2g)</em>, and the range is <em>R = (v₀²sin(2θ))/g</em>.</p>
             <div class="control-panel" aria-label="Kinematics controls">
                 <div class="control-group">
                     <label for="angle">Launch angle <span id="angleDisplay">45°</span></label>
@@ -337,10 +338,6 @@
                 <div class="control-group">
                     <label for="speed">Initial speed <span id="speedDisplay">25 m/s</span></label>
                     <input type="range" id="speed" min="5" max="60" step="1" value="25">
-                </div>
-                <div class="control-group">
-                    <label for="gravity">Gravity <span id="gravityDisplay">9.8 m/s²</span></label>
-                    <input type="range" id="gravity" min="4" max="15" step="0.1" value="9.8">
                 </div>
                 <div class="actions">
                     <button class="launch" id="launch">Launch Pumpkin</button>
@@ -376,10 +373,8 @@
     <script>
         const angleInput = document.getElementById('angle');
         const speedInput = document.getElementById('speed');
-        const gravityInput = document.getElementById('gravity');
         const angleDisplay = document.getElementById('angleDisplay');
         const speedDisplay = document.getElementById('speedDisplay');
-        const gravityDisplay = document.getElementById('gravityDisplay');
 
         const timeResult = document.getElementById('timeResult');
         const rangeResult = document.getElementById('rangeResult');
@@ -398,7 +393,7 @@
         const state = {
             angle: parseFloat(angleInput.value),
             speed: parseFloat(speedInput.value),
-            gravity: parseFloat(gravityInput.value),
+            gravity: 9.8,
             metrics: null,
             animationId: null,
             currentTime: 0,
@@ -425,7 +420,6 @@
         function updateDisplays() {
             angleDisplay.textContent = `${state.angle.toFixed(0)}°`;
             speedDisplay.textContent = `${state.speed.toFixed(0)} m/s`;
-            gravityDisplay.textContent = `${state.gravity.toFixed(1)} m/s²`;
 
             state.metrics = computeMetrics();
 
@@ -493,11 +487,17 @@
             ctx.ellipse(originX - 36, groundY - 22, 42, 18, 0, 0, Math.PI * 2);
             ctx.fill();
 
+            const cannonLength = 70;
+            const cannonPivotX = originX - 20;
+            const cannonPivotY = groundY - 30;
+            const cannonTipX = cannonPivotX + cannonLength * Math.cos(state.metrics.angleRad);
+            const cannonTipY = cannonPivotY - cannonLength * Math.sin(state.metrics.angleRad);
+            
             ctx.save();
-            ctx.translate(originX - 20, groundY - 30);
+            ctx.translate(cannonPivotX, cannonPivotY);
             ctx.rotate(-state.metrics.angleRad);
             ctx.fillStyle = '#5f4b9c';
-            ctx.fillRect(-24, -10, 70, 20);
+            ctx.fillRect(-24, -10, cannonLength, 20);
             ctx.restore();
 
             const segments = Math.max(24, Math.round(state.metrics.flightTime * 60));
@@ -509,8 +509,8 @@
                 const t = (state.metrics.flightTime * i) / segments;
                 const x = state.metrics.vx * t;
                 const y = Math.max(0, state.metrics.vy * t - 0.5 * state.metrics.g * t * t);
-                const canvasX = originX + x * scale;
-                const canvasY = groundY - y * scale;
+                const canvasX = cannonTipX + x * scale;
+                const canvasY = cannonTipY - y * scale;
                 if (i === 0) {
                     ctx.moveTo(canvasX, canvasY);
                 } else {
@@ -524,8 +524,8 @@
             state.currentTime = clampedTime;
             const pumpkinX = state.metrics.vx * clampedTime;
             const pumpkinY = Math.max(0, state.metrics.vy * clampedTime - 0.5 * state.metrics.g * clampedTime * clampedTime);
-            const pumpkinCanvasX = originX + pumpkinX * scale;
-            const pumpkinCanvasY = groundY - pumpkinY * scale;
+            const pumpkinCanvasX = cannonTipX + pumpkinX * scale;
+            const pumpkinCanvasY = cannonTipY - pumpkinY * scale;
 
             ctx.fillStyle = 'rgba(255, 138, 61, 0.9)';
             ctx.beginPath();
@@ -586,10 +586,9 @@
             cancelAnimation();
             angleInput.value = 45;
             speedInput.value = 25;
-            gravityInput.value = 9.8;
             state.angle = parseFloat(angleInput.value);
             state.speed = parseFloat(speedInput.value);
-            state.gravity = parseFloat(gravityInput.value);
+            state.gravity = 9.8;
             updateDisplays();
         }
 
@@ -600,11 +599,6 @@
 
         speedInput.addEventListener('input', () => {
             state.speed = parseFloat(speedInput.value);
-            updateDisplays();
-        });
-
-        gravityInput.addEventListener('input', () => {
-            state.gravity = parseFloat(gravityInput.value);
             updateDisplays();
         });
 

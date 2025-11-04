@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Aiden</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky: #f6edff;
+            --peach: rgba(255, 204, 163, 0.5);
+            --mint: rgba(197, 255, 248, 0.55);
+            --ink: #2f2961;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(160deg, var(--sky) 0%, rgba(255, 255, 255, 0.92) 45%, rgba(255, 235, 255, 0.95) 100%);
+            color: var(--ink);
+            font-family: 'Poppins', sans-serif;
+            padding: 32px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        nav {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 18px;
+            padding: 12px 28px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(47, 41, 97, 0.18);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 18px 40px rgba(47, 41, 97, 0.18);
+            z-index: 10;
+        }
+
+        nav a {
+            color: var(--ink);
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 999px;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        nav a:hover {
+            background: rgba(197, 255, 248, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .content {
+            max-width: 680px;
+            padding: 48px;
+            background: rgba(255, 255, 255, 0.78);
+            border-radius: 32px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(47, 41, 97, 0.15);
+            box-shadow: 0 25px 55px rgba(47, 41, 97, 0.18);
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-family: 'Chewy', cursive;
+            letter-spacing: 0.12em;
+            margin-bottom: 24px;
+            color: var(--ink);
+        }
+
+        p {
+            line-height: 1.8;
+            font-size: 1.15rem;
+            color: rgba(47, 41, 97, 0.78);
+        }
+
+        .ghost-ring,
+        .ghost-ring::after {
+            content: "";
+            position: absolute;
+            inset: 18% 24%;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--peach), transparent 65%);
+            z-index: 0;
+            filter: blur(0px);
+        }
+
+        .ghost-ring::after {
+            inset: 12% 18%;
+            background: radial-gradient(circle, var(--mint), transparent 70%);
+        }
+
+        .floating-ghost {
+            position: absolute;
+            width: 110px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 55px 55px 30px 30px;
+            box-shadow: 0 15px 35px rgba(47, 41, 97, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: rgba(47, 41, 97, 0.85);
+            animation: bob 7s ease-in-out infinite;
+        }
+
+        .floating-ghost:nth-of-type(1) { top: 12%; left: 16%; animation-delay: -2s; }
+        .floating-ghost:nth-of-type(2) { bottom: 14%; right: 18%; animation-delay: -4s; }
+
+        @keyframes bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-16px); }
+        }
+
+        @media (max-width: 680px) {
+            .content {
+                padding: 36px 28px;
+            }
+
+            nav {
+                top: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="pacman.html">Pac-Man</a>
+        <a href="kinematics.html">Pumpkin Cannon</a>
+    </nav>
+    <div class="ghost-ring" aria-hidden="true"></div>
+    <div class="floating-ghost" aria-hidden="true">👻</div>
+    <div class="floating-ghost" aria-hidden="true">👻</div>
+    <section class="content">
+        <h1>About Aiden</h1>
+        <p>I am a football lover and violin prodigy. Whether I'm sprinting down the field or coaxing melodies from my strings, I chase the joy of rhythm, teamwork, and harmony every day.</p>
+    </section>
+</body>
+</html>

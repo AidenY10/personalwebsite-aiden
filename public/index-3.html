@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aiden's Ghostly Garden</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --lavender-sky: #f3e8ff;
+            --sunset-glow: #ffd8a8;
+            --moonbeam: rgba(255, 255, 255, 0.7);
+            --midnight-ink: #2f2961;
+            --minty: #b6f4ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at top, rgba(255, 216, 168, 0.6), transparent 55%),
+                        radial-gradient(circle at bottom right, rgba(182, 244, 255, 0.55), transparent 60%),
+                        var(--lavender-sky);
+            color: var(--midnight-ink);
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+        }
+
+        .menu-toggle {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(47, 41, 97, 0.2);
+            background: rgba(255, 255, 255, 0.45);
+            color: var(--midnight-ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+            z-index: 10;
+        }
+
+        .menu-toggle:hover {
+            transform: scale(1.05);
+            border-color: rgba(47, 41, 97, 0.45);
+            background: rgba(255, 255, 255, 0.65);
+        }
+
+        .menu-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(243, 232, 255, 0.92);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+            z-index: 9;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .menu-overlay a {
+            padding: 16px 32px;
+            border-radius: 999px;
+            border: 2px solid rgba(47, 41, 97, 0.2);
+            color: var(--midnight-ink);
+            text-decoration: none;
+            font-size: 1rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: transform 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .menu-overlay a:hover {
+            transform: translateY(-4px);
+            border-color: rgba(47, 41, 97, 0.45);
+            background: rgba(255, 255, 255, 0.85);
+        }
+
+        .hero {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .glass-title {
+            position: relative;
+            padding: 48px 140px;
+            border-radius: 40px;
+            backdrop-filter: blur(24px);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.35));
+            box-shadow: 0 30px 60px rgba(47, 41, 97, 0.2);
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .glass-title::before,
+        .glass-title::after {
+            content: "";
+            position: absolute;
+            inset: 12px;
+            border-radius: 32px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent 55%);
+            mix-blend-mode: screen;
+            animation: shimmer 7s ease-in-out infinite;
+            opacity: 0.9;
+        }
+
+        .glass-title::after {
+            inset: 22px;
+            background: radial-gradient(circle at 70% 80%, rgba(255, 216, 168, 0.65), transparent 70%);
+            animation-delay: -2s;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.7; }
+            50% { transform: translate3d(8px, -6px, 0); opacity: 1; }
+        }
+
+        .glass-title h1 {
+            font-family: 'Chewy', cursive;
+            font-size: clamp(3.2rem, 8vw, 6.5rem);
+            letter-spacing: 0.12em;
+            color: var(--midnight-ink);
+            text-shadow: 0 8px 24px rgba(255, 255, 255, 0.6);
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: rgba(47, 41, 97, 0.78);
+            max-width: 520px;
+            line-height: 1.7;
+        }
+
+        .ghosts {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .ghosts span {
+            position: absolute;
+            width: 120px;
+            height: 160px;
+            background: rgba(255, 255, 255, 0.82);
+            border-radius: 60px 60px 35px 35px;
+            box-shadow: 0 18px 40px rgba(47, 41, 97, 0.16);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: rgba(47, 41, 97, 0.85);
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .ghosts span::after {
+            content: '';
+            position: absolute;
+            bottom: -18px;
+            width: 100%;
+            height: 36px;
+            background: radial-gradient(circle at 10% 0, rgba(255, 255, 255, 0.85) 35%, transparent 36%),
+                        radial-gradient(circle at 50% 0, rgba(255, 255, 255, 0.85) 35%, transparent 36%),
+                        radial-gradient(circle at 90% 0, rgba(255, 255, 255, 0.85) 35%, transparent 36%);
+        }
+
+        .ghosts span:nth-child(1) {
+            top: 10%;
+            left: 12%;
+            animation-delay: -2s;
+        }
+
+        .ghosts span:nth-child(2) {
+            bottom: 12%;
+            right: 10%;
+            animation-delay: -4s;
+        }
+
+        .ghosts span:nth-child(3) {
+            top: 50%;
+            left: 70%;
+            animation-delay: -6s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-18px); }
+        }
+
+        @media (max-width: 680px) {
+            .glass-title {
+                padding: 40px 70px;
+            }
+
+            .menu-toggle {
+                top: 16px;
+                right: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ghosts" aria-hidden="true">
+        <span>👻</span>
+        <span>👻</span>
+        <span>👻</span>
+    </div>
+
+    <button class="menu-toggle" aria-label="Open navigation menu" aria-expanded="false">☰</button>
+
+    <nav class="menu-overlay" aria-hidden="true">
+        <a href="about.html">About Me</a>
+        <a href="pacman.html">Play Pac-Man</a>
+        <a href="kinematics.html">Pumpkin Cannon Lab</a>
+    </nav>
+
+    <main class="hero">
+        <section class="glass-title" aria-labelledby="ghostly-title">
+            <h1 id="ghostly-title">Aiden</h1>
+        </section>
+        <p>Step into my bright ghost garden! Float through my story or chase friendly spirits in a cheerful Pac-Man maze.
+        </p>
+    </main>
+
+    <script>
+        const menuToggle = document.querySelector('.menu-toggle');
+        const menuOverlay = document.querySelector('.menu-overlay');
+
+        menuToggle.addEventListener('click', () => {
+            const isOpen = menuOverlay.classList.toggle('active');
+            menuToggle.setAttribute('aria-expanded', isOpen);
+            menuOverlay.setAttribute('aria-hidden', !isOpen);
+            menuToggle.textContent = isOpen ? '✕' : '☰';
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && menuOverlay.classList.contains('active')) {
+                menuOverlay.classList.remove('active');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                menuOverlay.setAttribute('aria-hidden', 'true');
+                menuToggle.textContent = '☰';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pumpkin Cannon Kinematics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Chewy&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sky: #f3e8ff;
+            --mist: rgba(182, 244, 255, 0.48);
+            --sunset: rgba(255, 216, 168, 0.58);
+            --ink: #2f2961;
+            --pumpkin: #ff8a3d;
+            --sage: rgba(143, 232, 182, 0.6);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Poppins', sans-serif;
+            color: var(--ink);
+            background: radial-gradient(circle at top right, var(--mist), transparent 60%),
+                        radial-gradient(circle at bottom left, var(--sunset), transparent 55%),
+                        var(--sky);
+            padding: 24px 18px 48px;
+        }
+
+        nav {
+            position: sticky;
+            top: 16px;
+            align-self: center;
+            display: flex;
+            gap: 16px;
+            padding: 12px 28px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(47, 41, 97, 0.18);
+            backdrop-filter: blur(18px);
+            box-shadow: 0 18px 44px rgba(47, 41, 97, 0.15);
+            z-index: 10;
+        }
+
+        nav a {
+            color: var(--ink);
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-size: 0.88rem;
+            padding: 8px 18px;
+            border-radius: 999px;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        nav a:hover,
+        nav a:focus-visible,
+        nav a[aria-current="page"] {
+            background: rgba(182, 244, 255, 0.7);
+            transform: translateY(-2px);
+            outline: none;
+        }
+
+        main {
+            flex: 1;
+            display: grid;
+            grid-template-columns: minmax(280px, 440px) minmax(320px, 1fr);
+            gap: 32px;
+            align-items: stretch;
+            max-width: 1100px;
+            width: 100%;
+            margin: 48px auto 0;
+            position: relative;
+        }
+
+        .intro {
+            padding: 36px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 32px;
+            border: 1px solid rgba(47, 41, 97, 0.16);
+            box-shadow: 0 24px 60px rgba(47, 41, 97, 0.18);
+            backdrop-filter: blur(14px);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .intro h1 {
+            font-family: 'Chewy', cursive;
+            letter-spacing: 0.12em;
+            font-size: clamp(2rem, 3vw, 2.8rem);
+            margin: 0;
+        }
+
+        .intro p {
+            margin: 0;
+            line-height: 1.7;
+            color: rgba(47, 41, 97, 0.78);
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .control-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 0.04em;
+        }
+
+        .control-group label span {
+            font-weight: 500;
+            color: rgba(47, 41, 97, 0.7);
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(47, 41, 97, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd8a8, #b6f4ff);
+            border: 2px solid rgba(47, 41, 97, 0.35);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd8a8, #b6f4ff);
+            border: 2px solid rgba(47, 41, 97, 0.35);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        input[type="range"]:active::-webkit-slider-thumb,
+        input[type="range"]:active::-moz-range-thumb {
+            transform: scale(1.1);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .actions button {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px 18px;
+            border-radius: 16px;
+            border: none;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .actions button.launch {
+            background: linear-gradient(135deg, #ffb56b, #ff8a3d);
+            color: #fff;
+            box-shadow: 0 14px 28px rgba(255, 138, 61, 0.45);
+        }
+
+        .actions button.reset {
+            background: rgba(182, 244, 255, 0.8);
+            color: var(--ink);
+            box-shadow: 0 12px 24px rgba(47, 41, 97, 0.12);
+        }
+
+        .actions button:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-card {
+            padding: 14px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid rgba(47, 41, 97, 0.12);
+            box-shadow: 0 16px 32px rgba(47, 41, 97, 0.14);
+        }
+
+        .stat-card h3 {
+            margin: 0;
+            font-size: 0.9rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(47, 41, 97, 0.65);
+        }
+
+        .stat-card p {
+            margin: 4px 0 0;
+            font-size: 1.35rem;
+            font-weight: 600;
+        }
+
+        .scene-panel {
+            position: relative;
+            border-radius: 36px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(47, 41, 97, 0.12);
+            box-shadow: 0 24px 60px rgba(47, 41, 97, 0.18);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scene-panel canvas {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .readout {
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.9);
+            border-top: 1px solid rgba(47, 41, 97, 0.12);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 24px;
+            align-items: center;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+        }
+
+        .readout span {
+            font-weight: 700;
+        }
+
+        .ghost {
+            position: absolute;
+            font-size: 3rem;
+            opacity: 0.4;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .ghost:nth-of-type(1) {
+            top: -10px;
+            left: 18px;
+            animation-delay: -2s;
+        }
+
+        .ghost:nth-of-type(2) {
+            bottom: 12px;
+            right: 24px;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-16px); }
+        }
+
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .scene-panel {
+                min-height: 420px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px 12px 32px;
+            }
+
+            nav {
+                width: calc(100% - 32px);
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .intro {
+                padding: 28px 24px;
+            }
+
+            main {
+                margin-top: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="about.html">About</a>
+        <a href="pacman.html">Pac-Man</a>
+        <a href="kinematics.html" aria-current="page">Pumpkin Cannon</a>
+    </nav>
+    <main>
+        <section class="intro">
+            <h1>Ghostly Pumpkin Cannon</h1>
+            <p>Experiment with launch angle, speed, and gravity to craft the perfect pumpkin toss. The pumpkin soars from a cozy ghost cannon while the math unfolds in real time.</p>
+            <div class="control-panel" aria-label="Kinematics controls">
+                <div class="control-group">
+                    <label for="angle">Launch angle <span id="angleDisplay">45°</span></label>
+                    <input type="range" id="angle" min="10" max="80" step="1" value="45">
+                </div>
+                <div class="control-group">
+                    <label for="speed">Initial speed <span id="speedDisplay">25 m/s</span></label>
+                    <input type="range" id="speed" min="5" max="60" step="1" value="25">
+                </div>
+                <div class="control-group">
+                    <label for="gravity">Gravity <span id="gravityDisplay">9.8 m/s²</span></label>
+                    <input type="range" id="gravity" min="4" max="15" step="0.1" value="9.8">
+                </div>
+                <div class="actions">
+                    <button class="launch" id="launch">Launch Pumpkin</button>
+                    <button class="reset" id="reset">Reset</button>
+                </div>
+            </div>
+            <div class="stat-grid" aria-live="polite">
+                <article class="stat-card">
+                    <h3>Flight time</h3>
+                    <p id="timeResult">0.00 s</p>
+                </article>
+                <article class="stat-card">
+                    <h3>Range</h3>
+                    <p id="rangeResult">0.00 m</p>
+                </article>
+                <article class="stat-card">
+                    <h3>Peak height</h3>
+                    <p id="heightResult">0.00 m</p>
+                </article>
+            </div>
+        </section>
+        <section class="scene-panel" aria-labelledby="trajectoryTitle">
+            <span class="ghost" aria-hidden="true">👻</span>
+            <span class="ghost" aria-hidden="true">🎃</span>
+            <canvas id="trajectory" role="img" aria-label="Animated pumpkin trajectory over time"></canvas>
+            <div class="readout" id="liveReadout" aria-live="polite">
+                <span id="timeLabel">t = 0.00 s</span>
+                <span id="xLabel">x = 0.00 m</span>
+                <span id="yLabel">y = 0.00 m</span>
+            </div>
+        </section>
+    </main>
+    <script>
+        const angleInput = document.getElementById('angle');
+        const speedInput = document.getElementById('speed');
+        const gravityInput = document.getElementById('gravity');
+        const angleDisplay = document.getElementById('angleDisplay');
+        const speedDisplay = document.getElementById('speedDisplay');
+        const gravityDisplay = document.getElementById('gravityDisplay');
+
+        const timeResult = document.getElementById('timeResult');
+        const rangeResult = document.getElementById('rangeResult');
+        const heightResult = document.getElementById('heightResult');
+
+        const timeLabel = document.getElementById('timeLabel');
+        const xLabel = document.getElementById('xLabel');
+        const yLabel = document.getElementById('yLabel');
+
+        const launchButton = document.getElementById('launch');
+        const resetButton = document.getElementById('reset');
+
+        const canvas = document.getElementById('trajectory');
+        const ctx = canvas.getContext('2d');
+
+        const state = {
+            angle: parseFloat(angleInput.value),
+            speed: parseFloat(speedInput.value),
+            gravity: parseFloat(gravityInput.value),
+            metrics: null,
+            animationId: null,
+            currentTime: 0,
+            animating: false,
+            pixelRatio: window.devicePixelRatio || 1
+        };
+
+        function computeMetrics() {
+            const angleRad = state.angle * Math.PI / 180;
+            const vx = state.speed * Math.cos(angleRad);
+            const vy = state.speed * Math.sin(angleRad);
+            const g = state.gravity;
+            const flightTime = vy > 0 ? (2 * vy) / g : 0;
+            const range = flightTime > 0 ? vx * flightTime : 0;
+            const maxHeight = vy > 0 ? (vy * vy) / (2 * g) : 0;
+
+            return { angleRad, vx, vy, g, flightTime, range, maxHeight };
+        }
+
+        function formatNumber(value, digits = 2) {
+            return Number.isFinite(value) ? value.toFixed(digits) : '0.00';
+        }
+
+        function updateDisplays() {
+            angleDisplay.textContent = `${state.angle.toFixed(0)}°`;
+            speedDisplay.textContent = `${state.speed.toFixed(0)} m/s`;
+            gravityDisplay.textContent = `${state.gravity.toFixed(1)} m/s²`;
+
+            state.metrics = computeMetrics();
+
+            timeResult.textContent = `${formatNumber(state.metrics.flightTime)} s`;
+            rangeResult.textContent = `${formatNumber(state.metrics.range)} m`;
+            heightResult.textContent = `${formatNumber(state.metrics.maxHeight)} m`;
+
+            if (!state.animating) {
+                drawScene(0);
+                updateReadout(0, 0, 0);
+            }
+        }
+
+        function updateReadout(t, x, y) {
+            timeLabel.textContent = `t = ${formatNumber(t)} s`;
+            xLabel.textContent = `x = ${formatNumber(x)} m`;
+            yLabel.textContent = `y = ${formatNumber(y)} m`;
+        }
+
+        function resizeCanvas() {
+            const ratio = window.devicePixelRatio || 1;
+            state.pixelRatio = ratio;
+            const width = canvas.clientWidth;
+            const height = canvas.clientHeight;
+            canvas.width = width * ratio;
+            canvas.height = height * ratio;
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            drawScene(state.animating ? state.currentTime : 0);
+        }
+
+        function drawScene(currentTime) {
+            if (!state.metrics) return;
+
+            const ratio = state.pixelRatio;
+            const width = canvas.width / ratio;
+            const height = canvas.height / ratio;
+
+            ctx.save();
+            ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            ctx.clearRect(0, 0, width, height);
+
+            const groundY = height - 80;
+            const originX = 100;
+
+            const effectiveRange = Math.max(state.metrics.range, 12);
+            const effectiveHeight = Math.max(state.metrics.maxHeight, 6);
+            const horizontalSpace = width - originX - 60;
+            const verticalSpace = groundY - 80;
+            const scale = Math.max(4, Math.min(horizontalSpace / effectiveRange, verticalSpace / effectiveHeight));
+
+            ctx.fillStyle = 'rgba(143, 232, 182, 0.35)';
+            ctx.beginPath();
+            ctx.moveTo(0, groundY + 40);
+            ctx.lineTo(width, groundY + 40);
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(47, 41, 97, 0.1)';
+            ctx.fillRect(0, groundY, width, 4);
+
+            ctx.fillStyle = '#4f3e85';
+            ctx.beginPath();
+            ctx.ellipse(originX - 36, groundY - 22, 42, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.save();
+            ctx.translate(originX - 20, groundY - 30);
+            ctx.rotate(-state.metrics.angleRad);
+            ctx.fillStyle = '#5f4b9c';
+            ctx.fillRect(-24, -10, 70, 20);
+            ctx.restore();
+
+            const segments = Math.max(24, Math.round(state.metrics.flightTime * 60));
+            ctx.strokeStyle = 'rgba(47, 41, 97, 0.28)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 8]);
+            ctx.beginPath();
+            for (let i = 0; i <= segments; i++) {
+                const t = (state.metrics.flightTime * i) / segments;
+                const x = state.metrics.vx * t;
+                const y = Math.max(0, state.metrics.vy * t - 0.5 * state.metrics.g * t * t);
+                const canvasX = originX + x * scale;
+                const canvasY = groundY - y * scale;
+                if (i === 0) {
+                    ctx.moveTo(canvasX, canvasY);
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const clampedTime = Math.min(currentTime, state.metrics.flightTime);
+            state.currentTime = clampedTime;
+            const pumpkinX = state.metrics.vx * clampedTime;
+            const pumpkinY = Math.max(0, state.metrics.vy * clampedTime - 0.5 * state.metrics.g * clampedTime * clampedTime);
+            const pumpkinCanvasX = originX + pumpkinX * scale;
+            const pumpkinCanvasY = groundY - pumpkinY * scale;
+
+            ctx.fillStyle = 'rgba(255, 138, 61, 0.9)';
+            ctx.beginPath();
+            ctx.ellipse(pumpkinCanvasX, pumpkinCanvasY, 18, 18, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(47, 41, 97, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#6f9c5f';
+            ctx.beginPath();
+            ctx.moveTo(pumpkinCanvasX, pumpkinCanvasY - 18);
+            ctx.lineTo(pumpkinCanvasX + 4, pumpkinCanvasY - 28);
+            ctx.lineTo(pumpkinCanvasX - 4, pumpkinCanvasY - 24);
+            ctx.closePath();
+            ctx.fill();
+
+            updateReadout(clampedTime, pumpkinX, pumpkinY);
+
+            ctx.restore();
+        }
+
+        function cancelAnimation() {
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+                state.animationId = null;
+            }
+            state.animating = false;
+        }
+
+        function animateLaunch(startTime) {
+            state.animating = true;
+            function frame(now) {
+                const elapsed = (now - startTime) / 1000;
+                drawScene(elapsed);
+                if (elapsed >= state.metrics.flightTime) {
+                    drawScene(state.metrics.flightTime);
+                    state.animating = false;
+                    state.animationId = null;
+                    return;
+                }
+                state.animationId = requestAnimationFrame(frame);
+            }
+            state.animationId = requestAnimationFrame(frame);
+        }
+
+        function handleLaunch() {
+            cancelAnimation();
+            if (!state.metrics || state.metrics.flightTime <= 0) {
+                drawScene(0);
+                return;
+            }
+            const start = performance.now();
+            animateLaunch(start);
+        }
+
+        function handleReset() {
+            cancelAnimation();
+            angleInput.value = 45;
+            speedInput.value = 25;
+            gravityInput.value = 9.8;
+            state.angle = parseFloat(angleInput.value);
+            state.speed = parseFloat(speedInput.value);
+            state.gravity = parseFloat(gravityInput.value);
+            updateDisplays();
+        }
+
+        angleInput.addEventListener('input', () => {
+            state.angle = parseFloat(angleInput.value);
+            updateDisplays();
+        });
+
+        speedInput.addEventListener('input', () => {
+            state.speed = parseFloat(speedInput.value);
+            updateDisplays();
+        });
+
+        gravityInput.addEventListener('input', () => {
+            state.gravity = parseFloat(gravityInput.value);
+            updateDisplays();
+        });
+
+        launchButton.addEventListener('click', handleLaunch);
+        resetButton.addEventListener('click', handleReset);
+
+        window.addEventListener('resize', resizeCanvas);
+
+        updateDisplays();
+        setTimeout(resizeCanvas, 0);
+    </script>
+</body>
+</html>

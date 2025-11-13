@@ -14,6 +14,14 @@
             --minty: #b6f4ff;
         }
 
+        [data-theme="dark"] {
+            --lavender-sky: #1a1526;
+            --sunset-glow: rgba(139, 92, 58, 0.6);
+            --moonbeam: rgba(60, 55, 100, 0.7);
+            --midnight-ink: #e8e3f5;
+            --minty: rgba(100, 180, 200, 0.4);
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -53,10 +61,56 @@
             z-index: 10;
         }
 
+        [data-theme="dark"] .menu-toggle {
+            border-color: rgba(232, 227, 245, 0.3);
+            background: rgba(26, 21, 38, 0.65);
+        }
+
         .menu-toggle:hover {
             transform: scale(1.05);
             border-color: rgba(47, 41, 97, 0.45);
             background: rgba(255, 255, 255, 0.65);
+        }
+
+        [data-theme="dark"] .menu-toggle:hover {
+            border-color: rgba(232, 227, 245, 0.5);
+            background: rgba(26, 21, 38, 0.85);
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(47, 41, 97, 0.2);
+            background: rgba(255, 255, 255, 0.45);
+            color: var(--midnight-ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+            z-index: 10;
+        }
+
+        [data-theme="dark"] .dark-mode-toggle {
+            border-color: rgba(232, 227, 245, 0.3);
+            background: rgba(26, 21, 38, 0.65);
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.05);
+            border-color: rgba(47, 41, 97, 0.45);
+            background: rgba(255, 255, 255, 0.65);
+        }
+
+        [data-theme="dark"] .dark-mode-toggle:hover {
+            border-color: rgba(232, 227, 245, 0.5);
+            background: rgba(26, 21, 38, 0.85);
         }
 
         .menu-overlay {
@@ -73,6 +127,10 @@
             pointer-events: none;
             transition: opacity 0.35s ease;
             z-index: 9;
+        }
+
+        [data-theme="dark"] .menu-overlay {
+            background: rgba(26, 21, 38, 0.95);
         }
 
         .menu-overlay.active {
@@ -93,10 +151,20 @@
             background: rgba(255, 255, 255, 0.6);
         }
 
+        [data-theme="dark"] .menu-overlay a {
+            border-color: rgba(232, 227, 245, 0.3);
+            background: rgba(60, 55, 100, 0.5);
+        }
+
         .menu-overlay a:hover {
             transform: translateY(-4px);
             border-color: rgba(47, 41, 97, 0.45);
             background: rgba(255, 255, 255, 0.85);
+        }
+
+        [data-theme="dark"] .menu-overlay a:hover {
+            border-color: rgba(232, 227, 245, 0.5);
+            background: rgba(60, 55, 100, 0.7);
         }
 
         .hero {
@@ -119,6 +187,11 @@
             box-shadow: 0 30px 60px rgba(47, 41, 97, 0.2);
             overflow: hidden;
             isolation: isolate;
+        }
+
+        [data-theme="dark"] .glass-title {
+            background: linear-gradient(135deg, rgba(60, 55, 100, 0.6), rgba(26, 21, 38, 0.5));
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
         }
 
         .glass-title::before,
@@ -215,6 +288,38 @@
             50% { transform: translateY(-18px); }
         }
 
+        .high-score-badge {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 2px solid rgba(47, 41, 97, 0.2);
+            backdrop-filter: blur(12px);
+            font-size: 0.95rem;
+            color: var(--midnight-ink);
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            z-index: 5;
+            text-align: center;
+        }
+
+        [data-theme="dark"] .high-score-badge {
+            background: rgba(60, 55, 100, 0.7);
+            border-color: rgba(232, 227, 245, 0.3);
+        }
+
+        .high-score-badge strong {
+            font-weight: 700;
+            color: rgba(47, 41, 97, 0.9);
+        }
+
+        [data-theme="dark"] .high-score-badge strong {
+            color: rgba(232, 227, 245, 0.95);
+        }
+
         @media (max-width: 680px) {
             .glass-title {
                 padding: 40px 70px;
@@ -234,12 +339,14 @@
         <span>👻</span>
     </div>
 
+    <button class="dark-mode-toggle" id="dark-mode-toggle" aria-label="Toggle dark mode">🌙</button>
     <button class="menu-toggle" aria-label="Open navigation menu" aria-expanded="false">☰</button>
 
     <nav class="menu-overlay" aria-hidden="true">
         <a href="about.html">About Me</a>
         <a href="pacman.html">Play Pac-Man</a>
         <a href="kinematics.html">Pumpkin Cannon Lab</a>
+        <a href="nfl.html">NFL Database</a>
     </nav>
 
     <main class="hero">
@@ -250,9 +357,81 @@
         </p>
     </main>
 
+    <div class="high-score-badge" id="high-score-badge">
+        Pac-Man High Score: <strong id="high-score-value">--</strong>
+    </div>
+
     <script>
         const menuToggle = document.querySelector('.menu-toggle');
         const menuOverlay = document.querySelector('.menu-overlay');
+        const highScoreValue = document.getElementById('high-score-value');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+        // Cookie functions
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+        }
+
+        // Dark mode functions
+        function loadDarkMode() {
+            const darkMode = getCookie('dark_mode');
+            return darkMode === 'true';
+        }
+
+        function applyDarkMode(isDark) {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeToggle.textContent = '☀️';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                darkModeToggle.textContent = '🌙';
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const newMode = !isDark;
+            applyDarkMode(newMode);
+            setCookie('dark_mode', newMode.toString(), 365);
+        }
+
+        // Initialize dark mode on page load
+        applyDarkMode(loadDarkMode());
+        darkModeToggle.addEventListener('click', toggleDarkMode);
+
+        // Display high score from cookie
+        function updateHighScoreDisplay() {
+            const cookieValue = getCookie('pacman_high_score');
+            let highScore = 0;
+            if (cookieValue !== null && cookieValue !== '') {
+                const parsed = parseInt(cookieValue, 10);
+                if (!isNaN(parsed) && parsed > 0) {
+                    highScore = parsed;
+                }
+            }
+            if (highScore > 0) {
+                highScoreValue.textContent = `${highScore}s`;
+            } else {
+                highScoreValue.textContent = '--';
+            }
+        }
+
+        // Load high score on page load and refresh periodically to catch updates from other tabs
+        updateHighScoreDisplay();
+        setInterval(updateHighScoreDisplay, 1000); // Check every second for updates
 
         menuToggle.addEventListener('click', () => {
             const isOpen = menuOverlay.classList.toggle('active');

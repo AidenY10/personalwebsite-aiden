@@ -13,6 +13,13 @@
             --ink: #2f2961;
         }
 
+        [data-theme="dark"] {
+            --sky: #1a1526;
+            --peach: rgba(139, 92, 58, 0.5);
+            --mint: rgba(100, 180, 200, 0.4);
+            --ink: #e8e3f5;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
@@ -25,6 +32,42 @@
             color: var(--ink);
             font-family: 'Poppins', sans-serif;
             overflow: hidden;
+        }
+
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid rgba(47, 41, 97, 0.2);
+            background: rgba(255, 255, 255, 0.78);
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            cursor: pointer;
+            backdrop-filter: blur(18px);
+            transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+            z-index: 11;
+        }
+
+        [data-theme="dark"] .dark-mode-toggle {
+            border-color: rgba(232, 227, 245, 0.3);
+            background: rgba(26, 21, 38, 0.65);
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.05);
+            border-color: rgba(47, 41, 97, 0.45);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        [data-theme="dark"] .dark-mode-toggle:hover {
+            border-color: rgba(232, 227, 245, 0.5);
+            background: rgba(26, 21, 38, 0.85);
         }
 
         nav {
@@ -43,6 +86,11 @@
             z-index: 10;
         }
 
+        [data-theme="dark"] nav {
+            background: rgba(26, 21, 38, 0.75);
+            border-color: rgba(232, 227, 245, 0.2);
+        }
+
         nav a {
             color: var(--ink);
             text-decoration: none;
@@ -59,6 +107,10 @@
             transform: translateY(-2px);
         }
 
+        [data-theme="dark"] nav a:hover {
+            background: rgba(100, 180, 200, 0.4);
+        }
+
         .game-wrapper {
             position: relative;
             padding: 36px;
@@ -69,11 +121,22 @@
             box-shadow: 0 25px 55px rgba(47, 41, 97, 0.22);
         }
 
+        [data-theme="dark"] .game-wrapper {
+            background: rgba(26, 21, 38, 0.8);
+            border-color: rgba(232, 227, 245, 0.2);
+            box-shadow: 0 25px 55px rgba(0, 0, 0, 0.5);
+        }
+
         canvas {
             display: block;
             background: rgba(255, 255, 255, 0.95);
             border-radius: 16px;
             box-shadow: inset 0 0 0 3px rgba(47, 41, 97, 0.12);
+        }
+
+        [data-theme="dark"] canvas {
+            background: rgba(30, 25, 45, 0.95);
+            box-shadow: inset 0 0 0 3px rgba(232, 227, 245, 0.2);
         }
 
         .hud {
@@ -98,11 +161,34 @@
             color: rgba(47, 41, 97, 0.75);
         }
 
+        [data-theme="dark"] .hud p {
+            color: rgba(232, 227, 245, 0.8);
+        }
+
         .status {
             margin-top: 12px;
             font-weight: 600;
             letter-spacing: 0.08em;
             min-height: 1.2em;
+        }
+
+        .timer-display {
+            margin-top: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: 0.1em;
+        }
+
+        .high-score {
+            margin-top: 8px;
+            font-size: 0.95rem;
+            color: rgba(47, 41, 97, 0.7);
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .high-score {
+            color: rgba(232, 227, 245, 0.75);
         }
 
         .background-ghost {
@@ -119,6 +205,12 @@
             color: rgba(47, 41, 97, 0.85);
             animation: float 8s ease-in-out infinite;
             z-index: -1;
+        }
+
+        [data-theme="dark"] .background-ghost {
+            background: rgba(60, 55, 100, 0.7);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
+            color: rgba(232, 227, 245, 0.8);
         }
 
         .background-ghost::after {
@@ -142,6 +234,7 @@
     </style>
 </head>
 <body>
+    <button class="dark-mode-toggle" id="dark-mode-toggle" aria-label="Toggle dark mode">🌙</button>
     <nav>
         <a href="index.html">Home</a>
         <a href="about.html">About</a>
@@ -153,9 +246,11 @@
 
     <section class="game-wrapper">
         <canvas id="game" width="532" height="448" aria-label="Pac-Man game board"></canvas>
-        <div class="hud">
+            <div class="hud">
             <h1>Cheery Ghost Chase</h1>
-            <p>Use arrow keys or WASD to guide Pac-Man. Munch every sprinkle dot and sidestep the smiling spirit!</p>
+            <p>Use arrow keys or WASD to guide Pac-Man. Munch every sprinkle dot and sidestep the four spirits!</p>
+            <div class="timer-display" id="timer">0s</div>
+            <div class="high-score" id="high-score">High Score: --</div>
             <div class="status" id="status"></div>
         </div>
     </section>
@@ -164,6 +259,112 @@
         const canvas = document.getElementById('game');
         const ctx = canvas.getContext('2d');
         const status = document.getElementById('status');
+        const timerDisplay = document.getElementById('timer');
+        const highScoreDisplay = document.getElementById('high-score');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+        // Cookie functions
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        // Timer and high score management
+        let startTime = null;
+        let elapsedSeconds = 0;
+        let timerInterval = null;
+        
+        // Load high score from cookie on page load
+        function loadHighScore() {
+            const cookieValue = getCookie('pacman_high_score');
+            if (cookieValue !== null && cookieValue !== '') {
+                const parsed = parseInt(cookieValue, 10);
+                if (!isNaN(parsed) && parsed > 0) {
+                    return parsed;
+                }
+            }
+            return 0;
+        }
+        
+        let highScore = loadHighScore();
+
+        function updateHighScoreDisplay() {
+            if (highScore > 0) {
+                highScoreDisplay.textContent = `High Score: ${highScore}s`;
+            } else {
+                highScoreDisplay.textContent = `High Score: --`;
+            }
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            elapsedSeconds = 0;
+            timerInterval = setInterval(() => {
+                if (pacman.alive) {
+                    elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                    timerDisplay.textContent = `${elapsedSeconds}s`;
+                }
+            }, 100);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function checkAndUpdateHighScore() {
+            if (elapsedSeconds > highScore) {
+                highScore = elapsedSeconds;
+                setCookie('pacman_high_score', highScore.toString(), 365);
+                updateHighScoreDisplay();
+                console.log('High score saved:', highScore); // Debug log
+                return true;
+            }
+            return false;
+        }
+
+        updateHighScoreDisplay();
+
+        // Dark mode functions
+        function loadDarkMode() {
+            const darkMode = getCookie('dark_mode');
+            return darkMode === 'true';
+        }
+
+        function applyDarkMode(isDark) {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeToggle.textContent = '☀️';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                darkModeToggle.textContent = '🌙';
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const newMode = !isDark;
+            applyDarkMode(newMode);
+            setCookie('dark_mode', newMode.toString(), 365);
+        }
+
+        // Initialize dark mode on page load
+        applyDarkMode(loadDarkMode());
+        darkModeToggle.addEventListener('click', toggleDarkMode);
 
         const layout = [
             '###################',
@@ -209,18 +410,52 @@
             alive: true
         };
 
-        const ghost = {
-            color: '#ff8b94',
-            current: { row: 13, col: 15 },
-            next: { row: 13, col: 15 },
-            direction: { dx: -1, dy: 0 },
-            progress: 1,
-            speed: 0.07
-        };
+        const ghosts = [
+            {
+                index: 0,
+                color: '#ff8b94',
+                current: { row: 13, col: 8 },
+                next: { row: 13, col: 8 },
+                direction: { dx: -1, dy: 0 },
+                progress: 1,
+                speed: 0.07
+            },
+            {
+                index: 1,
+                color: '#ff6b9d',
+                current: { row: 13, col: 10 },
+                next: { row: 13, col: 10 },
+                direction: { dx: 1, dy: 0 },
+                progress: 0.5,
+                speed: 0.065
+            },
+            {
+                index: 2,
+                color: '#c44569',
+                current: { row: 13, col: 7 },
+                next: { row: 13, col: 7 },
+                direction: { dx: 0, dy: -1 },
+                progress: 0.25,
+                speed: 0.075
+            },
+            {
+                index: 3,
+                color: '#f8b500',
+                current: { row: 13, col: 11 },
+                next: { row: 13, col: 11 },
+                direction: { dx: 0, dy: 1 },
+                progress: 0.75,
+                speed: 0.068
+            }
+        ];
 
         function canMove(row, col) {
-            if (row < 0 || row >= rows || col < 0 || col >= cols) return false;
-            return grid[row][col] !== '#';
+            // Allow horizontal wrapping (tunnels)
+            if (row < 0 || row >= rows) return false;
+            let wrappedCol = col;
+            if (wrappedCol < 0) wrappedCol = cols - 1;
+            if (wrappedCol >= cols) wrappedCol = 0;
+            return grid[row][wrappedCol] !== '#';
         }
 
         function wrapPosition(entity) {
@@ -248,7 +483,9 @@
                     pellets--;
                     pacman.mouthDir = 1;
                     if (pellets <= 0) {
-                        status.textContent = 'You cleared the ghost garden! 👻✨';
+                        stopTimer();
+                        const isNewRecord = checkAndUpdateHighScore();
+                        status.textContent = `You cleared the ghost garden! 👻✨ Survival time: ${elapsedSeconds}s${isNewRecord ? ' 🏆 NEW RECORD!' : ''}`;
                         pacman.alive = false;
                     } else {
                         status.textContent = `${pellets} treats left!`;
@@ -279,39 +516,203 @@
             }
         }
 
-        function updateGhost() {
+        function getPacmanPosition() {
+            const pacRow = pacman.current.row + (pacman.next.row - pacman.current.row) * pacman.progress;
+            const pacCol = pacman.current.col + (pacman.next.col - pacman.current.col) * pacman.progress;
+            return { row: Math.round(pacRow), col: Math.round(pacCol) };
+        }
+
+        function getDistance(row1, col1, row2, col2) {
+            // Handle wrapping in x direction
+            let colDiff = Math.abs(col2 - col1);
+            if (colDiff > cols / 2) {
+                colDiff = cols - colDiff;
+            }
+            return Math.sqrt((row2 - row1) * (row2 - row1) + colDiff * colDiff);
+        }
+
+        function findPathToTarget(ghost, targetRow, targetCol) {
+            const directions = [
+                { dx: 1, dy: 0 },
+                { dx: -1, dy: 0 },
+                { dx: 0, dy: 1 },
+                { dx: 0, dy: -1 }
+            ];
+
+            const options = [];
+            
+            directions.forEach(dir => {
+                let newRow = ghost.current.row + dir.dy;
+                let newCol = ghost.current.col + dir.dx;
+                
+                // Handle wrapping for column
+                if (newCol < 0) newCol = cols - 1;
+                if (newCol >= cols) newCol = 0;
+                
+                // Check if move is valid
+                if (!canMove(newRow, newCol)) return;
+                
+                // Don't reverse direction unless it's the only option
+                const isReverse = ghost.direction.dx === -dir.dx && ghost.direction.dy === -dir.dy;
+                if (isReverse && directions.length > 1) {
+                    // Only allow reverse if there are no other options (will be checked later)
+                    return;
+                }
+                
+                // Calculate distance to target (handling wrap-around)
+                let targetColWrapped = targetCol;
+                let newColWrapped = newCol;
+                
+                // Handle horizontal wrapping - find shortest path
+                const colDiff1 = Math.abs(targetCol - newCol);
+                const colDiff2 = cols - colDiff1;
+                const shortestColDiff = Math.min(colDiff1, colDiff2);
+                
+                // Adjust target column for wrapped distance calculation
+                if (colDiff1 > cols / 2) {
+                    if (targetCol > newCol) {
+                        targetColWrapped = targetCol - cols;
+                    } else {
+                        targetColWrapped = targetCol + cols;
+                    }
+                }
+                
+                const rowDiff = targetRow - newRow;
+                const colDiffWrapped = targetColWrapped - newColWrapped;
+                
+                // Use Manhattan distance for more predictable pathfinding in grid
+                const distance = Math.abs(rowDiff) + Math.abs(colDiffWrapped);
+                
+                options.push({ dir, distance, newRow, newCol });
+            });
+
+            // If no valid options, allow reverse
+            if (options.length === 0) {
+                directions.forEach(dir => {
+                    let newRow = ghost.current.row + dir.dy;
+                    let newCol = ghost.current.col + dir.dx;
+                    
+                    // Handle wrapping
+                    if (newCol < 0) newCol = cols - 1;
+                    if (newCol >= cols) newCol = 0;
+                    
+                    if (canMove(newRow, newCol)) {
+                        let targetColWrapped = targetCol;
+                        const colDiff1 = Math.abs(targetCol - newCol);
+                        if (colDiff1 > cols / 2) {
+                            if (targetCol > newCol) {
+                                targetColWrapped = targetCol - cols;
+                            } else {
+                                targetColWrapped = targetCol + cols;
+                            }
+                        }
+                        const rowDiff = targetRow - newRow;
+                        const colDiffWrapped = targetColWrapped - newCol;
+                        const distance = Math.abs(rowDiff) + Math.abs(colDiffWrapped);
+                        options.push({ dir, distance, newRow, newCol });
+                    }
+                });
+            }
+
+            // Choose the direction that minimizes distance to target
+            if (options.length > 0) {
+                // Sort by distance, but if distances are equal, prefer current direction
+                options.sort((a, b) => {
+                    if (Math.abs(a.distance - b.distance) < 0.1) {
+                        // If distances are very close, prefer current direction for smoother movement
+                        const aMatches = a.dir.dx === ghost.direction.dx && a.dir.dy === ghost.direction.dy;
+                        const bMatches = b.dir.dx === ghost.direction.dx && b.dir.dy === ghost.direction.dy;
+                        if (aMatches) return -1;
+                        if (bMatches) return 1;
+                    }
+                    return a.distance - b.distance;
+                });
+                return options[0].dir;
+            }
+
+            // Fallback: keep current direction
+            return ghost.direction;
+        }
+
+        function getTargetPosition(ghost, pacPos) {
+            // Different ghosts can have different targeting strategies
+            const ghostIndex = ghost.index;
+            
+            // Ghost 0: Direct chase (Blinky-like - aggressive)
+            if (ghostIndex === 0) {
+                return pacPos;
+            }
+            
+            // Ghost 1: Target ahead of Pac-Man (Pinky-like - ambush)
+            if (ghostIndex === 1) {
+                const aheadRow = pacPos.row + pacman.direction.dy * 3;
+                const aheadCol = pacPos.col + pacman.direction.dx * 3;
+                // Handle wrapping for target position
+                let targetCol = aheadCol;
+                if (targetCol < 0) targetCol = cols - 1;
+                if (targetCol >= cols) targetCol = 0;
+                return { row: Math.max(0, Math.min(rows - 1, aheadRow)), col: targetCol };
+            }
+            
+            // Ghost 2: Target point between ghost and Pac-Man (Inky-like - intercept)
+            if (ghostIndex === 2) {
+                const midRow = Math.round((ghost.current.row + pacPos.row) / 2);
+                const midCol = Math.round((ghost.current.col + pacPos.col) / 2);
+                // Handle wrapping
+                let targetCol = midCol;
+                if (targetCol < 0) targetCol = cols - 1;
+                if (targetCol >= cols) targetCol = 0;
+                return { row: Math.max(0, Math.min(rows - 1, midRow)), col: targetCol };
+            }
+            
+            // Ghost 3: Direct chase with occasional scatter (Clyde-like - unpredictable)
+            if (ghostIndex === 3) {
+                const distance = getDistance(ghost.current.row, ghost.current.col, pacPos.row, pacPos.col);
+                // If far, chase directly; if close, sometimes target offset position
+                if (distance > 8 || Math.random() < 0.75) {
+                    return pacPos;
+                } else {
+                    const offsetRow = pacPos.row + (Math.random() < 0.5 ? 2 : -2);
+                    const offsetCol = pacPos.col + (Math.random() < 0.5 ? 2 : -2);
+                    let targetCol = offsetCol;
+                    if (targetCol < 0) targetCol = cols - 1;
+                    if (targetCol >= cols) targetCol = 0;
+                    return { row: Math.max(0, Math.min(rows - 1, offsetRow)), col: targetCol };
+                }
+            }
+            
+            return pacPos;
+        }
+
+        function updateGhost(ghost) {
             if (ghost.progress >= 1) {
                 ghost.current.row = ghost.next.row;
                 ghost.current.col = ghost.next.col;
                 wrapPosition(ghost);
 
-                const options = [];
-                const directions = [
-                    { dx: 1, dy: 0 },
-                    { dx: -1, dy: 0 },
-                    { dx: 0, dy: 1 },
-                    { dx: 0, dy: -1 }
-                ];
-
-                directions.forEach(dir => {
-                    const newRow = ghost.current.row + dir.dy;
-                    const newCol = ghost.current.col + dir.dx;
-                    if (!canMove(newRow, newCol)) return;
-                    if (ghost.direction.dx === -dir.dx && ghost.direction.dy === -dir.dy && options.length) return;
-                    options.push(dir);
-                });
-
-                if (options.length === 0) {
-                    ghost.direction.dx = -ghost.direction.dx;
-                    ghost.direction.dy = -ghost.direction.dy;
-                } else {
-                    ghost.direction = options[Math.floor(Math.random() * options.length)];
-                }
+                // Get Pac-Man's position
+                const pacPos = getPacmanPosition();
+                
+                // Get target position based on ghost strategy
+                const targetPos = getTargetPosition(ghost, pacPos);
+                
+                // Find best direction to move toward target
+                const bestDir = findPathToTarget(ghost, targetPos.row, targetPos.col);
+                
+                ghost.direction = bestDir;
 
                 ghost.next = {
                     row: ghost.current.row + ghost.direction.dy,
                     col: ghost.current.col + ghost.direction.dx
                 };
+
+                // Handle wrapping
+                if (ghost.next.col < 0) {
+                    ghost.next.col = cols - 1;
+                }
+                if (ghost.next.col >= cols) {
+                    ghost.next.col = 0;
+                }
 
                 if (!canMove(ghost.next.row, ghost.next.col)) {
                     ghost.next = { ...ghost.current };
@@ -324,7 +725,7 @@
             }
         }
 
-        function positionsOverlap() {
+        function positionsOverlap(ghost) {
             const pacRow = Math.round(pacman.current.row + (pacman.next.row - pacman.current.row) * pacman.progress);
             const pacCol = Math.round(pacman.current.col + (pacman.next.col - pacman.current.col) * pacman.progress);
             const ghostRow = Math.round(ghost.current.row + (ghost.next.row - ghost.current.row) * ghost.progress);
@@ -397,7 +798,7 @@
             ctx.fill();
         }
 
-        function drawGhost() {
+        function drawGhost(ghost) {
             const posRow = ghost.current.row + (ghost.next.row - ghost.current.row) * ghost.progress;
             const posCol = ghost.current.col + (ghost.next.col - ghost.current.col) * ghost.progress;
             const x = (posCol + 0.5) * tileSize;
@@ -426,16 +827,23 @@
 
         function gameLoop() {
             updatePacman();
-            updateGhost();
+            ghosts.forEach(ghost => updateGhost(ghost));
 
-            if (pacman.alive && positionsOverlap()) {
-                pacman.alive = false;
-                status.textContent = 'The spirit tagged you! Press R to float again.';
+            if (pacman.alive) {
+                for (const ghost of ghosts) {
+                    if (positionsOverlap(ghost)) {
+                        stopTimer();
+                        pacman.alive = false;
+                        const isNewRecord = checkAndUpdateHighScore();
+                        status.textContent = `The spirits tagged you! Survival time: ${elapsedSeconds}s${isNewRecord ? ' 🏆 NEW RECORD! Press R to float again.' : ' Press R to float again.'}`;
+                        break;
+                    }
+                }
             }
 
             drawBoard();
             drawPacman();
-            drawGhost();
+            ghosts.forEach(ghost => drawGhost(ghost));
 
             requestAnimationFrame(gameLoop);
         }
@@ -453,6 +861,7 @@
         });
 
         function resetGame() {
+            stopTimer();
             for (let r = 0; r < rows; r++) {
                 grid[r] = layout[r].split('');
             }
@@ -468,14 +877,32 @@
             pacman.progress = 1;
             pacman.alive = true;
             status.textContent = `${pellets} treats left!`;
+            timerDisplay.textContent = '0s';
+            startTimer();
 
-            ghost.current = { row: 13, col: 15 };
-            ghost.next = { row: 13, col: 15 };
-            ghost.direction = { dx: -1, dy: 0 };
-            ghost.progress = 1;
+            ghosts[0].current = { row: 13, col: 8 };
+            ghosts[0].next = { row: 13, col: 8 };
+            ghosts[0].direction = { dx: -1, dy: 0 };
+            ghosts[0].progress = 1;
+
+            ghosts[1].current = { row: 13, col: 10 };
+            ghosts[1].next = { row: 13, col: 10 };
+            ghosts[1].direction = { dx: 1, dy: 0 };
+            ghosts[1].progress = 0.5;
+
+            ghosts[2].current = { row: 13, col: 7 };
+            ghosts[2].next = { row: 13, col: 7 };
+            ghosts[2].direction = { dx: 0, dy: -1 };
+            ghosts[2].progress = 0.25;
+
+            ghosts[3].current = { row: 13, col: 11 };
+            ghosts[3].next = { row: 13, col: 11 };
+            ghosts[3].direction = { dx: 0, dy: 1 };
+            ghosts[3].progress = 0.75;
         }
 
         status.textContent = `${pellets} treats left!`;
+        startTimer();
         gameLoop();
     </script>
 </body>

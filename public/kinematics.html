@@ -15,6 +15,15 @@
             --sage: rgba(143, 232, 182, 0.6);
         }
 
+        [data-theme="dark"] {
+            --sky: #1a1526;
+            --mist: rgba(100, 180, 200, 0.4);
+            --sunset: rgba(139, 92, 58, 0.5);
+            --ink: #e8e3f5;
+            --pumpkin: #ff8a3d;
+            --sage: rgba(100, 180, 180, 0.5);
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -32,6 +41,42 @@
             padding: 24px 18px 48px;
         }
 
+        .dark-mode-toggle {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid rgba(47, 41, 97, 0.2);
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            cursor: pointer;
+            backdrop-filter: blur(18px);
+            transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+            z-index: 11;
+        }
+
+        [data-theme="dark"] .dark-mode-toggle {
+            border-color: rgba(232, 227, 245, 0.3);
+            background: rgba(26, 21, 38, 0.65);
+        }
+
+        .dark-mode-toggle:hover {
+            transform: scale(1.05);
+            border-color: rgba(47, 41, 97, 0.45);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        [data-theme="dark"] .dark-mode-toggle:hover {
+            border-color: rgba(232, 227, 245, 0.5);
+            background: rgba(26, 21, 38, 0.85);
+        }
+
         nav {
             position: sticky;
             top: 16px;
@@ -45,6 +90,11 @@
             backdrop-filter: blur(18px);
             box-shadow: 0 18px 44px rgba(47, 41, 97, 0.15);
             z-index: 10;
+        }
+
+        [data-theme="dark"] nav {
+            background: rgba(26, 21, 38, 0.75);
+            border-color: rgba(232, 227, 245, 0.2);
         }
 
         nav a {
@@ -64,6 +114,12 @@
             background: rgba(182, 244, 255, 0.7);
             transform: translateY(-2px);
             outline: none;
+        }
+
+        [data-theme="dark"] nav a:hover,
+        [data-theme="dark"] nav a:focus-visible,
+        [data-theme="dark"] nav a[aria-current="page"] {
+            background: rgba(100, 180, 200, 0.4);
         }
 
         main {
@@ -88,6 +144,12 @@
             display: flex;
             flex-direction: column;
             gap: 24px;
+        }
+
+        [data-theme="dark"] .intro {
+            background: rgba(26, 21, 38, 0.8);
+            border-color: rgba(232, 227, 245, 0.2);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
         }
 
         .intro h1 {
@@ -319,6 +381,7 @@
     </style>
 </head>
 <body>
+    <button class="dark-mode-toggle" id="dark-mode-toggle" aria-label="Toggle dark mode">🌙</button>
     <nav>
         <a href="index.html">Home</a>
         <a href="about.html">About</a>
@@ -367,6 +430,8 @@
                 <span id="timeLabel">t = 0.00 s</span>
                 <span id="xLabel">x = 0.00 m</span>
                 <span id="yLabel">y = 0.00 m</span>
+                <span id="vxLabel">vₓ = 0.00 m/s</span>
+                <span id="vyLabel">vᵧ = 0.00 m/s</span>
             </div>
         </section>
     </main>
@@ -383,6 +448,8 @@
         const timeLabel = document.getElementById('timeLabel');
         const xLabel = document.getElementById('xLabel');
         const yLabel = document.getElementById('yLabel');
+        const vxLabel = document.getElementById('vxLabel');
+        const vyLabel = document.getElementById('vyLabel');
 
         const launchButton = document.getElementById('launch');
         const resetButton = document.getElementById('reset');
@@ -429,14 +496,32 @@
 
             if (!state.animating) {
                 drawScene(0);
-                updateReadout(0, 0, 0);
+                if (state.metrics) {
+                    updateReadout(0, 0, 0, state.metrics.vx, state.metrics.vy);
+                } else {
+                    updateReadout(0, 0, 0);
+                }
             }
         }
 
-        function updateReadout(t, x, y) {
+        function updateReadout(t, x, y, vx = null, vy = null) {
             timeLabel.textContent = `t = ${formatNumber(t)} s`;
             xLabel.textContent = `x = ${formatNumber(x)} m`;
             yLabel.textContent = `y = ${formatNumber(y)} m`;
+            
+            if (vx !== null && vy !== null && state.metrics) {
+                vxLabel.textContent = `vₓ = ${formatNumber(vx)} m/s`;
+                vyLabel.textContent = `vᵧ = ${formatNumber(vy)} m/s`;
+            } else if (state.metrics) {
+                // Calculate velocity from metrics
+                const currentVx = state.metrics.vx;
+                const currentVy = state.metrics.vy - state.metrics.g * t;
+                vxLabel.textContent = `vₓ = ${formatNumber(currentVx)} m/s`;
+                vyLabel.textContent = `vᵧ = ${formatNumber(currentVy)} m/s`;
+            } else {
+                vxLabel.textContent = `vₓ = 0.00 m/s`;
+                vyLabel.textContent = `vᵧ = 0.00 m/s`;
+            }
         }
 
         function resizeCanvas() {
@@ -464,11 +549,13 @@
             const groundY = height - 80;
             const originX = 100;
 
-            const effectiveRange = Math.max(state.metrics.range, 12);
+            // Fixed maximum range of 200 meters
+            const maxRange = 200;
+            const effectiveRange = Math.min(state.metrics.range, maxRange);
             const effectiveHeight = Math.max(state.metrics.maxHeight, 6);
             const horizontalSpace = width - originX - 60;
             const verticalSpace = groundY - 80;
-            const scale = Math.max(4, Math.min(horizontalSpace / effectiveRange, verticalSpace / effectiveHeight));
+            const scale = Math.max(4, Math.min(horizontalSpace / maxRange, verticalSpace / effectiveHeight));
 
             ctx.fillStyle = 'rgba(143, 232, 182, 0.35)';
             ctx.beginPath();
@@ -492,6 +579,74 @@
             const cannonPivotY = groundY - 30;
             const cannonTipX = cannonPivotX + cannonLength * Math.cos(state.metrics.angleRad);
             const cannonTipY = cannonPivotY - cannonLength * Math.sin(state.metrics.angleRad);
+
+            // Draw coordinate axes from cannon tip (launch point)
+            ctx.strokeStyle = 'rgba(47, 41, 97, 0.25)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([]);
+            
+            // X-axis (horizontal) - extends from cannon tip
+            ctx.beginPath();
+            ctx.moveTo(cannonTipX, cannonTipY);
+            ctx.lineTo(cannonTipX + maxRange * scale, cannonTipY);
+            ctx.stroke();
+            
+            // Y-axis (vertical) - extends from cannon tip
+            const maxYDisplay = Math.ceil(Math.max(effectiveHeight, 10) / 10) * 10;
+            ctx.beginPath();
+            ctx.moveTo(cannonTipX, cannonTipY);
+            ctx.lineTo(cannonTipX, cannonTipY - Math.min(maxYDisplay * scale, verticalSpace));
+            ctx.stroke();
+
+            // Draw x-coordinate labels and grid lines
+            ctx.font = '11px Poppins';
+            ctx.fillStyle = 'rgba(47, 41, 97, 0.6)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            
+            const xStep = 50; // Label every 50 meters
+            for (let x = 0; x <= maxRange; x += xStep) {
+                const xPos = cannonTipX + x * scale;
+                if (xPos > cannonTipX && xPos < width - 20) {
+                    // Grid line
+                    ctx.strokeStyle = 'rgba(47, 41, 97, 0.08)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(xPos, Math.max(60, cannonTipY - maxYDisplay * scale));
+                    ctx.lineTo(xPos, groundY + 5);
+                    ctx.stroke();
+                    
+                    // Label
+                    ctx.fillStyle = 'rgba(47, 41, 97, 0.6)';
+                    ctx.fillText(`${x} m`, xPos, cannonTipY + 8);
+                }
+            }
+
+            // Draw y-coordinate labels and grid lines
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            
+            const yStep = 10; // Label every 10 meters
+            for (let y = 0; y <= maxYDisplay; y += yStep) {
+                const yPos = cannonTipY - y * scale;
+                if (yPos < cannonTipY && yPos > 60) {
+                    // Grid line
+                    ctx.strokeStyle = 'rgba(47, 41, 97, 0.08)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(cannonTipX - 5, yPos);
+                    ctx.lineTo(cannonTipX + maxRange * scale, yPos);
+                    ctx.stroke();
+                    
+                    // Label
+                    ctx.fillStyle = 'rgba(47, 41, 97, 0.6)';
+                    ctx.fillText(`${y} m`, cannonTipX - 10, yPos);
+                }
+            }
+
+            // Reset text alignment
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
             
             ctx.save();
             ctx.translate(cannonPivotX, cannonPivotY);
@@ -524,6 +679,11 @@
             state.currentTime = clampedTime;
             const pumpkinX = state.metrics.vx * clampedTime;
             const pumpkinY = Math.max(0, state.metrics.vy * clampedTime - 0.5 * state.metrics.g * clampedTime * clampedTime);
+            
+            // Calculate current velocity components (appropriate for physics)
+            const currentVx = state.metrics.vx; // Horizontal velocity is constant
+            const currentVy = state.metrics.vy - state.metrics.g * clampedTime; // Vertical velocity changes with gravity
+            
             const pumpkinCanvasX = cannonTipX + pumpkinX * scale;
             const pumpkinCanvasY = cannonTipY - pumpkinY * scale;
 
@@ -543,7 +703,36 @@
             ctx.closePath();
             ctx.fill();
 
-            updateReadout(clampedTime, pumpkinX, pumpkinY);
+            // Draw velocity vector (optional visual indicator)
+            if (clampedTime > 0 && clampedTime < state.metrics.flightTime && pumpkinY > 0) {
+                const velocityScale = 0.3; // Scale factor for velocity vector visualization
+                const vxScaled = currentVx * velocityScale;
+                const vyScaled = -currentVy * velocityScale; // Negative because canvas y increases downward
+                
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.7)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(pumpkinCanvasX, pumpkinCanvasY);
+                ctx.lineTo(pumpkinCanvasX + vxScaled, pumpkinCanvasY + vyScaled);
+                ctx.stroke();
+                
+                // Arrowhead
+                const angle = Math.atan2(vyScaled, vxScaled);
+                ctx.beginPath();
+                ctx.moveTo(pumpkinCanvasX + vxScaled, pumpkinCanvasY + vyScaled);
+                ctx.lineTo(
+                    pumpkinCanvasX + vxScaled - 8 * Math.cos(angle - Math.PI / 6),
+                    pumpkinCanvasY + vyScaled - 8 * Math.sin(angle - Math.PI / 6)
+                );
+                ctx.moveTo(pumpkinCanvasX + vxScaled, pumpkinCanvasY + vyScaled);
+                ctx.lineTo(
+                    pumpkinCanvasX + vxScaled - 8 * Math.cos(angle + Math.PI / 6),
+                    pumpkinCanvasY + vyScaled - 8 * Math.sin(angle + Math.PI / 6)
+                );
+                ctx.stroke();
+            }
+
+            updateReadout(clampedTime, pumpkinX, pumpkinY, currentVx, currentVy);
 
             ctx.restore();
         }
@@ -609,6 +798,53 @@
 
         updateDisplays();
         setTimeout(resizeCanvas, 0);
+    </script>
+    <script>
+        // Dark mode functions
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+            }
+            return null;
+        }
+
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
+        }
+
+        function loadDarkMode() {
+            const darkMode = getCookie('dark_mode');
+            return darkMode === 'true';
+        }
+
+        function applyDarkMode(isDark) {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkModeToggle.textContent = '☀️';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                darkModeToggle.textContent = '🌙';
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const newMode = !isDark;
+            applyDarkMode(newMode);
+            setCookie('dark_mode', newMode.toString(), 365);
+        }
+
+        // Initialize dark mode on page load
+        applyDarkMode(loadDarkMode());
+        darkModeToggle.addEventListener('click', toggleDarkMode);
     </script>
 </body>
 </html>

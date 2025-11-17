@@ -451,7 +451,6 @@
     <button class="dark-mode-toggle" id="dark-mode-toggle" aria-label="Toggle dark mode">🌙</button>
     <header>
         <a href="index.html" aria-label="Return to home page">← Back Home</a>
-        <a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Open Firebase Console</a>
     </header>
 
     <main>
@@ -498,10 +497,6 @@
                             <label for="division">Division</label>
                             <input type="text" id="division" name="division" placeholder="e.g., West">
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="notes">Additional Notes</label>
-                        <textarea id="notes" name="notes" placeholder="Any additional information about the team..."></textarea>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="reset-form">Clear</button>
@@ -705,7 +700,6 @@
                     city: formData.get('city') || null,
                     conference: formData.get('conference') || null,
                     division: formData.get('division') || null,
-                    notes: formData.get('notes') || null,
                     createdAt: new Date().toISOString()
                 };
 

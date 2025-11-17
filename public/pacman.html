@@ -172,6 +172,32 @@
             min-height: 1.2em;
         }
 
+        .restart-button {
+            margin: 16px auto 0;
+            padding: 8px 18px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #f9a8d4, #f97373);
+            color: #fff;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(249, 112, 167, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+
+        .restart-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(249, 112, 167, 0.4);
+        }
+
+        .restart-button:active {
+            transform: translateY(0);
+            box-shadow: 0 8px 18px rgba(249, 112, 167, 0.3);
+        }
+
         .timer-display {
             margin-top: 12px;
             font-size: 1.3rem;
@@ -246,12 +272,32 @@
 
     <section class="game-wrapper">
         <canvas id="game" width="532" height="448" aria-label="Pac-Man game board"></canvas>
-            <div class="hud">
+        <div class="hud">
             <h1>Cheery Ghost Chase</h1>
             <p>Use arrow keys or WASD to guide Pac-Man. Munch every sprinkle dot and sidestep the four spirits!</p>
             <div class="timer-display" id="timer">0s</div>
             <div class="high-score" id="high-score">High Score: --</div>
             <div class="status" id="status"></div>
+                <button id="restart-button" class="restart-button" type="button">Restart (R)</button>
+        </div>
+    </section>
+
+    <section class="game-wrapper" aria-label="Leaderboard">
+        <div class="hud">
+            <h1>Leaderboard</h1>
+            <p>Top survival times from brave ghost chasers around the world.</p>
+            <table id="leaderboard-table" aria-label="High score leaderboard" style="width:100%; border-collapse:collapse; margin-top:12px; font-size:0.95rem;">
+                <thead>
+                    <tr>
+                        <th style="text-align:left; padding:8px 12px;">Rank</th>
+                        <th style="text-align:left; padding:8px 12px;">Name</th>
+                        <th style="text-align:left; padding:8px 12px;">Time (s)</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body">
+                    <!-- Filled from Firestore -->
+                </tbody>
+            </table>
         </div>
     </section>
 
@@ -262,6 +308,7 @@
         const timerDisplay = document.getElementById('timer');
         const highScoreDisplay = document.getElementById('high-score');
         const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const restartButton = document.getElementById('restart-button');
 
         // Cookie functions
         function setCookie(name, value, days) {
@@ -279,6 +326,19 @@
                 if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
             }
             return null;
+        }
+
+        // Player name management for leaderboard
+        function getOrAskPlayerName() {
+            let existing = getCookie('pacman_player_name');
+            if (existing && existing.trim() !== '') {
+                return existing.trim();
+            }
+
+            const name = window.prompt('New high score! Enter your name for the leaderboard:', '');
+            const safeName = name && name.trim() ? name.trim() : 'Anonymous';
+            setCookie('pacman_player_name', safeName, 365);
+            return safeName;
         }
 
         // Timer and high score management
@@ -331,7 +391,17 @@
                 highScore = elapsedSeconds;
                 setCookie('pacman_high_score', highScore.toString(), 365);
                 updateHighScoreDisplay();
-                console.log('High score saved:', highScore); // Debug log
+
+                // Get (or ask once for) a name to record on the leaderboard
+                const name = getOrAskPlayerName();
+                if (name && typeof window.submitLeaderboardScore === 'function') {
+                    try {
+                        window.submitLeaderboardScore(name, highScore);
+                    } catch (err) {
+                        console.error('Failed to submit leaderboard score:', err);
+                    }
+                }
+
                 return true;
             }
             return false;
@@ -410,6 +480,10 @@
             alive: true
         };
 
+        // Ghost frightened mode state
+        let isFrightened = false;
+        let frightenedEndTime = 0;
+
         const ghosts = [
             {
                 index: 0,
@@ -418,7 +492,8 @@
                 next: { row: 13, col: 8 },
                 direction: { dx: -1, dy: 0 },
                 progress: 1,
-                speed: 0.07
+                speed: 0.07,
+                normalSpeed: 0.07
             },
             {
                 index: 1,
@@ -427,7 +502,8 @@
                 next: { row: 13, col: 10 },
                 direction: { dx: 1, dy: 0 },
                 progress: 0.5,
-                speed: 0.065
+                speed: 0.065,
+                normalSpeed: 0.065
             },
             {
                 index: 2,
@@ -436,7 +512,8 @@
                 next: { row: 13, col: 7 },
                 direction: { dx: 0, dy: -1 },
                 progress: 0.25,
-                speed: 0.075
+                speed: 0.075,
+                normalSpeed: 0.075
             },
             {
                 index: 3,
@@ -445,9 +522,31 @@
                 next: { row: 13, col: 11 },
                 direction: { dx: 0, dy: 1 },
                 progress: 0.75,
-                speed: 0.068
+                speed: 0.068,
+                normalSpeed: 0.068
             }
         ];
+
+        function startFrightenedMode() {
+            isFrightened = true;
+            frightenedEndTime = Date.now() + 8000; // 8 seconds
+            ghosts.forEach(ghost => {
+                if (ghost.normalSpeed == null) {
+                    ghost.normalSpeed = ghost.speed;
+                }
+                ghost.speed = ghost.normalSpeed * 0.6;
+            });
+        }
+
+        function stopFrightenedMode() {
+            isFrightened = false;
+            frightenedEndTime = 0;
+            ghosts.forEach(ghost => {
+                if (ghost.normalSpeed != null) {
+                    ghost.speed = ghost.normalSpeed;
+                }
+            });
+        }
 
         function canMove(row, col) {
             // Allow horizontal wrapping (tunnels)
@@ -482,13 +581,18 @@
                     grid[pacman.current.row][pacman.current.col] = ' ';
                     pellets--;
                     pacman.mouthDir = 1;
+                    if (cell === 'o') {
+                        startFrightenedMode();
+                        status.textContent = `Power treat! Ghosts run away for 8s. ${pellets} treats left!`;
+                    } else {
+                        status.textContent = `${pellets} treats left!`;
+                    }
+
                     if (pellets <= 0) {
                         stopTimer();
                         const isNewRecord = checkAndUpdateHighScore();
                         status.textContent = `You cleared the ghost garden! 👻✨ Survival time: ${elapsedSeconds}s${isNewRecord ? ' 🏆 NEW RECORD!' : ''}`;
                         pacman.alive = false;
-                    } else {
-                        status.textContent = `${pellets} treats left!`;
                     }
                 }
 
@@ -529,6 +633,25 @@
                 colDiff = cols - colDiff;
             }
             return Math.sqrt((row2 - row1) * (row2 - row1) + colDiff * colDiff);
+        }
+
+        function getFleeTarget(ghost, pacPos) {
+            // Move several tiles away from Pac-Man based on relative position
+            const dRow = ghost.current.row - pacPos.row;
+            const dCol = ghost.current.col - pacPos.col;
+
+            const step = 5;
+            let fleeRow = ghost.current.row + Math.sign(dRow || 1) * step;
+            let fleeCol = ghost.current.col + Math.sign(dCol || 1) * step;
+
+            // Clamp / wrap within bounds
+            if (fleeRow < 0) fleeRow = 0;
+            if (fleeRow >= rows) fleeRow = rows - 1;
+
+            if (fleeCol < 0) fleeCol = cols - 1;
+            if (fleeCol >= cols) fleeCol = 0;
+
+            return { row: fleeRow, col: fleeCol };
         }
 
         function findPathToTarget(ghost, targetRow, targetCol) {
@@ -635,6 +758,11 @@
         }
 
         function getTargetPosition(ghost, pacPos) {
+            // When frightened, ghosts try to run away from Pac-Man
+            if (isFrightened) {
+                return getFleeTarget(ghost, pacPos);
+            }
+
             // Different ghosts can have different targeting strategies
             const ghostIndex = ghost.index;
             
@@ -804,7 +932,7 @@
             const x = (posCol + 0.5) * tileSize;
             const y = (posRow + 0.5) * tileSize;
 
-            ctx.fillStyle = ghost.color;
+            ctx.fillStyle = isFrightened ? '#4fc3f7' : ghost.color;
             ctx.beginPath();
             ctx.arc(x, y - tileSize / 4, tileSize / 2 - 4, Math.PI, 0);
             ctx.lineTo(x + tileSize / 2 - 4, y + tileSize / 2 - 4);
@@ -826,10 +954,15 @@
         }
 
         function gameLoop() {
+            // Handle end of frightened mode timing
+            if (isFrightened && Date.now() >= frightenedEndTime) {
+                stopFrightenedMode();
+            }
+
             updatePacman();
             ghosts.forEach(ghost => updateGhost(ghost));
 
-            if (pacman.alive) {
+            if (pacman.alive && !isFrightened) {
                 for (const ghost of ghosts) {
                     if (positionsOverlap(ghost)) {
                         stopTimer();
@@ -860,6 +993,12 @@
             }
         });
 
+        if (restartButton) {
+            restartButton.addEventListener('click', () => {
+                resetGame();
+            });
+        }
+
         function resetGame() {
             stopTimer();
             for (let r = 0; r < rows; r++) {
@@ -876,6 +1015,7 @@
             pacman.queued = { dx: 1, dy: 0 };
             pacman.progress = 1;
             pacman.alive = true;
+            stopFrightenedMode();
             status.textContent = `${pellets} treats left!`;
             timerDisplay.textContent = '0s';
             startTimer();
@@ -904,6 +1044,81 @@
         status.textContent = `${pellets} treats left!`;
         startTimer();
         gameLoop();
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAJ96dvLP0fXVawMTTDRKy6WWabun0Sjj8",
+            authDomain: "personalwebsite-aiden.firebaseapp.com",
+            projectId: "personalwebsite-aiden",
+            storageBucket: "personalwebsite-aiden.firebasestorage.app",
+            messagingSenderId: "528136635879",
+            appId: "1:528136635879:web:bb1e5c4218f398b7b62942",
+            measurementId: "G-5QNJ35YCN7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const leaderboardCollection = collection(db, "leaderboard");
+
+        const leaderboardBody = document.getElementById("leaderboard-body");
+
+        function renderLeaderboard(snapshot) {
+            if (!leaderboardBody) return;
+            leaderboardBody.innerHTML = "";
+
+            let rank = 1;
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const tr = document.createElement("tr");
+
+                const rankTd = document.createElement("td");
+                const nameTd = document.createElement("td");
+                const scoreTd = document.createElement("td");
+
+                rankTd.textContent = String(rank++);
+                nameTd.textContent = data.name || "Anonymous";
+                scoreTd.textContent = typeof data.score === "number" ? data.score.toString() : "";
+
+                rankTd.style.padding = "8px 12px";
+                nameTd.style.padding = "8px 12px";
+                scoreTd.style.padding = "8px 12px";
+
+                tr.appendChild(rankTd);
+                tr.appendChild(nameTd);
+                tr.appendChild(scoreTd);
+
+                leaderboardBody.appendChild(tr);
+            });
+        }
+
+        const leaderboardQuery = query(
+            leaderboardCollection,
+            orderBy("score", "desc"),
+            limit(10)
+        );
+
+        onSnapshot(leaderboardQuery, renderLeaderboard, (error) => {
+            console.error("Error listening to leaderboard:", error);
+        });
+
+        // Expose a helper to the main script to record new scores
+        window.submitLeaderboardScore = async (name, score) => {
+            try {
+                const safeName = name && name.trim() ? name.trim() : "Anonymous";
+                const safeScore = Number(score) || 0;
+                await addDoc(leaderboardCollection, {
+                    name: safeName,
+                    score: safeScore,
+                    createdAt: new Date().toISOString()
+                });
+            } catch (err) {
+                console.error("Failed to add leaderboard entry:", err);
+            }
+        };
     </script>
 </body>
 </html>

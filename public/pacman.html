@@ -538,9 +538,10 @@
             }
         ];
 
-        function startFrightenedMode() {
+        function startFrightenedMode(durationMs = 8000) {
             isFrightened = true;
-            frightenedEndTime = Date.now() + 8000; // 8 seconds
+            // Allow custom frightened duration (default 8 seconds)
+            frightenedEndTime = Date.now() + durationMs;
             ghosts.forEach(ghost => {
                 if (ghost.normalSpeed == null) {
                     ghost.normalSpeed = ghost.speed;
@@ -865,10 +866,35 @@
         }
 
         function positionsOverlap(ghost) {
-            const pacRow = Math.round(pacman.current.row + (pacman.next.row - pacman.current.row) * pacman.progress);
-            const pacCol = Math.round(pacman.current.col + (pacman.next.col - pacman.current.col) * pacman.progress);
-            const ghostRow = Math.round(ghost.current.row + (ghost.next.row - ghost.current.row) * ghost.progress);
-            const ghostCol = Math.round(ghost.current.col + (ghost.next.col - ghost.current.col) * ghost.progress);
+            // Handle tunnel wrapping so ghosts can't collide mid-warp
+            const wrapColDiff = Math.abs(ghost.next.col - ghost.current.col);
+            const isWrapping = wrapColDiff > 1;
+
+            // While ghost is "inside" the tunnel warp (also invisible), don't allow collisions
+            if (isWrapping && ghost.progress < 0.5) {
+                return false;
+            }
+
+            const pacRowFloat = pacman.current.row + (pacman.next.row - pacman.current.row) * pacman.progress;
+            const pacColFloat = pacman.current.col + (pacman.next.col - pacman.current.col) * pacman.progress;
+
+            let ghostRowFloat;
+            let ghostColFloat;
+
+            if (isWrapping) {
+                // Snap ghost position to the exit tile once it reappears
+                ghostRowFloat = ghost.next.row;
+                ghostColFloat = ghost.next.col;
+            } else {
+                ghostRowFloat = ghost.current.row + (ghost.next.row - ghost.current.row) * ghost.progress;
+                ghostColFloat = ghost.current.col + (ghost.next.col - ghost.current.col) * ghost.progress;
+            }
+
+            const pacRow = Math.round(pacRowFloat);
+            const pacCol = Math.round(pacColFloat);
+            const ghostRow = Math.round(ghostRowFloat);
+            const ghostCol = Math.round(ghostColFloat);
+
             return pacRow === ghostRow && pacCol === ghostCol;
         }
 
@@ -938,10 +964,31 @@
         }
 
         function drawGhost(ghost) {
-            const posRow = ghost.current.row + (ghost.next.row - ghost.current.row) * ghost.progress;
-            const posCol = ghost.current.col + (ghost.next.col - ghost.current.col) * ghost.progress;
-            const x = (posCol + 0.5) * tileSize;
-            const y = (posRow + 0.5) * tileSize;
+            // Detect horizontal wrapping between current and next tile
+            const colDiff = Math.abs(ghost.next.col - ghost.current.col);
+            const isWrapping = colDiff > 1;
+
+            let drawRow;
+            let drawCol;
+
+            if (isWrapping) {
+                // While in the tunnel warp, hide the ghost for a short moment,
+                // then make it reappear on the opposite side without sliding
+                if (ghost.progress < 0.5) {
+                    return; // invisible mid-warp
+                } else {
+                    drawRow = ghost.next.row;
+                    drawCol = ghost.next.col;
+                }
+            } else {
+                const posRow = ghost.current.row + (ghost.next.row - ghost.current.row) * ghost.progress;
+                const posCol = ghost.current.col + (ghost.next.col - ghost.current.col) * ghost.progress;
+                drawRow = posRow;
+                drawCol = posCol;
+            }
+
+            const x = (drawCol + 0.5) * tileSize;
+            const y = (drawRow + 0.5) * tileSize;
 
             // Choose ghost body color, including frightened + flashing near the end
             let ghostColor = ghost.color;
@@ -1050,10 +1097,11 @@
             if (key === 'arrowleft' || key === 'a') pacman.queued = { dx: -1, dy: 0 };
             if (key === 'arrowright' || key === 'd') pacman.queued = { dx: 1, dy: 0 };
 
-            // Helper: send ghosts back to the center home cluster when "p" is pressed
+            // Trigger frightened mode for 10 seconds when "p" is pressed,
+            // just like eating a power fruit
             if (key === 'p') {
-                sendAllGhostsHome();
-                status.textContent = 'All ghosts have returned home.';
+                startFrightenedMode(10000); // 10 seconds
+                status.textContent = `Power mode! Ghosts run away for 10s.`;
             }
 
             if (key === 'r' && !pacman.alive) {

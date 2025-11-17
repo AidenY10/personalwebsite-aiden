@@ -934,7 +934,20 @@
             const x = (posCol + 0.5) * tileSize;
             const y = (posRow + 0.5) * tileSize;
 
-            ctx.fillStyle = isFrightened ? '#4fc3f7' : ghost.color;
+            // Choose ghost body color, including frightened + flashing near the end
+            let ghostColor = ghost.color;
+            if (isFrightened) {
+                const remaining = frightenedEndTime - Date.now();
+                if (remaining > 0 && remaining < 2000) {
+                    // Flash between blue and white in the last 2 seconds
+                    const flashOn = Math.floor(Date.now() / 200) % 2 === 0;
+                    ghostColor = flashOn ? '#ffffff' : '#4fc3f7';
+                } else if (remaining > 0) {
+                    ghostColor = '#4fc3f7';
+                }
+            }
+
+            ctx.fillStyle = ghostColor;
             ctx.beginPath();
             ctx.arc(x, y - tileSize / 4, tileSize / 2 - 4, Math.PI, 0);
             ctx.lineTo(x + tileSize / 2 - 4, y + tileSize / 2 - 4);
@@ -985,6 +998,11 @@
 
         document.addEventListener('keydown', (event) => {
             const key = event.key.toLowerCase();
+            // Prevent arrow keys from scrolling the page while controlling Pac-Man
+            if (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright') {
+                event.preventDefault();
+            }
+
             if (key === 'arrowup' || key === 'w') pacman.queued = { dx: 0, dy: -1 };
             if (key === 'arrowdown' || key === 's') pacman.queued = { dx: 0, dy: 1 };
             if (key === 'arrowleft' || key === 'a') pacman.queued = { dx: -1, dy: 0 };

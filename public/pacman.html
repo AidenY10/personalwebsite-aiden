@@ -482,6 +482,15 @@
             alive: true
         };
 
+        // Designated ghost home position in the middle of the maze
+        const ghostHome = { row: 8, col: 9 };
+        const ghostHomeOffsets = [
+            { row: 0, col: -1 },
+            { row: 0, col: 1 },
+            { row: 1, col: -1 },
+            { row: 1, col: 1 }
+        ];
+
         // Ghost frightened mode state
         let isFrightened = false;
         let frightenedEndTime = 0;
@@ -490,8 +499,8 @@
             {
                 index: 0,
                 color: '#ff8b94',
-                current: { row: 13, col: 8 },
-                next: { row: 13, col: 8 },
+                current: { row: ghostHome.row + ghostHomeOffsets[0].row, col: ghostHome.col + ghostHomeOffsets[0].col },
+                next: { row: ghostHome.row + ghostHomeOffsets[0].row, col: ghostHome.col + ghostHomeOffsets[0].col },
                 direction: { dx: -1, dy: 0 },
                 progress: 1,
                 speed: 0.07,
@@ -500,8 +509,8 @@
             {
                 index: 1,
                 color: '#ff6b9d',
-                current: { row: 13, col: 10 },
-                next: { row: 13, col: 10 },
+                current: { row: ghostHome.row + ghostHomeOffsets[1].row, col: ghostHome.col + ghostHomeOffsets[1].col },
+                next: { row: ghostHome.row + ghostHomeOffsets[1].row, col: ghostHome.col + ghostHomeOffsets[1].col },
                 direction: { dx: 1, dy: 0 },
                 progress: 0.5,
                 speed: 0.065,
@@ -510,8 +519,8 @@
             {
                 index: 2,
                 color: '#c44569',
-                current: { row: 13, col: 7 },
-                next: { row: 13, col: 7 },
+                current: { row: ghostHome.row + ghostHomeOffsets[2].row, col: ghostHome.col + ghostHomeOffsets[2].col },
+                next: { row: ghostHome.row + ghostHomeOffsets[2].row, col: ghostHome.col + ghostHomeOffsets[2].col },
                 direction: { dx: 0, dy: -1 },
                 progress: 0.25,
                 speed: 0.075,
@@ -520,8 +529,8 @@
             {
                 index: 3,
                 color: '#f8b500',
-                current: { row: 13, col: 11 },
-                next: { row: 13, col: 11 },
+                current: { row: ghostHome.row + ghostHomeOffsets[3].row, col: ghostHome.col + ghostHomeOffsets[3].col },
+                next: { row: ghostHome.row + ghostHomeOffsets[3].row, col: ghostHome.col + ghostHomeOffsets[3].col },
                 direction: { dx: 0, dy: 1 },
                 progress: 0.75,
                 speed: 0.068,
@@ -968,6 +977,33 @@
             ctx.fill();
         }
 
+        function sendGhostHome(ghost) {
+            ghost.current = { row: ghostHome.row, col: ghostHome.col };
+            ghost.next = { row: ghostHome.row, col: ghostHome.col };
+            ghost.direction = { dx: 0, dy: 0 };
+            ghost.progress = 1;
+            // Ensure ghost speed is reset to normal in case it was modified
+            if (ghost.normalSpeed != null) {
+                ghost.speed = ghost.normalSpeed;
+            }
+        }
+
+        function sendAllGhostsHome() {
+            ghosts.forEach((ghost, index) => {
+                const offset = ghostHomeOffsets[index] || { row: 0, col: 0 };
+                ghost.current = {
+                    row: ghostHome.row + offset.row,
+                    col: ghostHome.col + offset.col
+                };
+                ghost.next = { ...ghost.current };
+                ghost.direction = { dx: 0, dy: 0 };
+                ghost.progress = 1;
+                if (ghost.normalSpeed != null) {
+                    ghost.speed = ghost.normalSpeed;
+                }
+            });
+        }
+
         function gameLoop() {
             // Handle end of frightened mode timing
             if (isFrightened && Date.now() >= frightenedEndTime) {
@@ -977,14 +1013,20 @@
             updatePacman();
             ghosts.forEach(ghost => updateGhost(ghost));
 
-            if (pacman.alive && !isFrightened) {
+            if (pacman.alive) {
                 for (const ghost of ghosts) {
                     if (positionsOverlap(ghost)) {
-                        stopTimer();
-                        pacman.alive = false;
-                        const isNewRecord = checkAndUpdateHighScore();
-                        status.textContent = `The spirits tagged you! Survival time: ${elapsedSeconds}s${isNewRecord ? ' 🏆 NEW RECORD! Press R to float again.' : ' Press R to float again.'}`;
-                        break;
+                        if (isFrightened) {
+                            // Pac-Man eats the ghost; send it back to ghost home
+                            sendGhostHome(ghost);
+                            status.textContent = 'Chomp! A ghost is heading back home.';
+                        } else {
+                            stopTimer();
+                            pacman.alive = false;
+                            const isNewRecord = checkAndUpdateHighScore();
+                            status.textContent = `The spirits tagged you! Survival time: ${elapsedSeconds}s${isNewRecord ? ' 🏆 NEW RECORD! Press R to float again.' : ' Press R to float again.'}`;
+                            break;
+                        }
                     }
                 }
             }
@@ -1007,6 +1049,12 @@
             if (key === 'arrowdown' || key === 's') pacman.queued = { dx: 0, dy: 1 };
             if (key === 'arrowleft' || key === 'a') pacman.queued = { dx: -1, dy: 0 };
             if (key === 'arrowright' || key === 'd') pacman.queued = { dx: 1, dy: 0 };
+
+            // Helper: send ghosts back to the center home cluster when "p" is pressed
+            if (key === 'p') {
+                sendAllGhostsHome();
+                status.textContent = 'All ghosts have returned home.';
+            }
 
             if (key === 'r' && !pacman.alive) {
                 resetGame();
@@ -1040,25 +1088,20 @@
             timerDisplay.textContent = '0s';
             startTimer();
 
-            ghosts[0].current = { row: 13, col: 8 };
-            ghosts[0].next = { row: 13, col: 8 };
-            ghosts[0].direction = { dx: -1, dy: 0 };
-            ghosts[0].progress = 1;
-
-            ghosts[1].current = { row: 13, col: 10 };
-            ghosts[1].next = { row: 13, col: 10 };
-            ghosts[1].direction = { dx: 1, dy: 0 };
-            ghosts[1].progress = 0.5;
-
-            ghosts[2].current = { row: 13, col: 7 };
-            ghosts[2].next = { row: 13, col: 7 };
-            ghosts[2].direction = { dx: 0, dy: -1 };
-            ghosts[2].progress = 0.25;
-
-            ghosts[3].current = { row: 13, col: 11 };
-            ghosts[3].next = { row: 13, col: 11 };
-            ghosts[3].direction = { dx: 0, dy: 1 };
-            ghosts[3].progress = 0.75;
+            // Reset ghosts back to their home cluster in the middle
+            ghosts.forEach((ghost, index) => {
+                const offset = ghostHomeOffsets[index] || { row: 0, col: 0 };
+                ghost.current = {
+                    row: ghostHome.row + offset.row,
+                    col: ghostHome.col + offset.col
+                };
+                ghost.next = { ...ghost.current };
+                ghost.direction = { dx: 0, dy: 0 };
+                ghost.progress = 1;
+                if (ghost.normalSpeed != null) {
+                    ghost.speed = ghost.normalSpeed;
+                }
+            });
         }
 
         status.textContent = `${pellets} treats left!`;
